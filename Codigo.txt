@@ -1,0 +1,130 @@
+#include <math.h>
+#include "Wire.h"
+#include "WiiChuck.h"
+
+//==============================================================================
+
+int MotorI = 9;	
+int MotorD = 10;     
+int Var_y = 0;           
+int X1 = 0;                 
+int X2 = 0;	      	
+int X = 0;	
+int I = 0;	     
+int D = 0;
+int dir1_I = 2;
+int dir2_I = 3;
+int dir1_D = 4;
+int dir2_D = 5;
+WiiChuck chuck = WiiChuck();
+
+//==============================================================================
+
+void setup() {
+
+	Serial.begin(115200);
+  	chuck.begin();
+  	chuck.update();
+  	chuck.calibrateJoy();
+
+ 	pinMode(MotorI, OUTPUT);   
+ 	pinMode(MotorD, OUTPUT);  
+ 
+}
+
+//==============================================================================
+
+void loop() {
+
+	inicio:
+		delay(20);
+		chuck.update(); 
+}
+
+//==================Dirección en Y==============================================
+
+Var_y = chuck.readJoyY();   
+
+if (Var_y >= -25) {
+             
+	Var_y = map(Var_y, -25, 60, 90, 255);
+	digitalWrite(dir1_I,HIGH);
+	digitalWrite(dir2_I,LOW);
+	digitalWrite(dir1_D,HIGH);
+	digitalWrite(dir2_D,LOW);
+	goto dif_ejes;
+}
+
+if (Var_y <= -37) {
+
+  	Var_y = map(Var_y, -37, -127, 90, 255);
+  	digitalWrite(dir1_I,LOW);
+	digitalWrite(dir2_I,HIGH);
+	digitalWrite(dir1_D,LOW);
+	digitalWrite(dir2_D,HIGH);
+	goto dif_ejes;
+}
+
+I = 0;
+D = 0;
+digitalWrite(dir1_I,HIGH);
+digitalWrite(dir2_I,LOW);
+digitalWrite(dir1_D,HIGH);
+digitalWrite(dir2_D,LOW);
+goto escribir;	
+
+//==================Diferencia ejes==============================================
+
+dif_ejes:
+
+//==================Derecha================================
+  
+X = chuck.readJoyX();     
+  
+if (X >= 137) {
+	
+	if (X > 200) {
+		
+		I = 255;
+		D = 0;
+		goto escribir;
+	}
+
+  	X1 = map(X, 137, 200, 155, 255); 
+  	X2 = (255-X1);
+  	goto datofinal;
+}
+
+//=================Izquierda===============================
+  
+if (X <= 117) {
+	
+	if (X < 40){
+
+		I = 0;
+		D = 255;
+		goto escribir;
+	}
+
+ 	X2 = map(X, 117, 40, 155, 255);
+  	X1 = (255-X2);
+  	goto datofinal;
+}
+  
+X1=255;
+X2=255;
+
+//=========================================================
+
+datofinal:
+
+	I = (Var_y*X1)/255;
+	D = (Var_y*X2)/255;
+
+//=========================================================
+
+escribir:
+
+	analogWrite(MotorI, D);
+	analogWrite(MotorD, I);
+
